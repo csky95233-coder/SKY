@@ -1,66 +1,154 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Die Again - Dark Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SKY - Die Again</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        body { background-color: #050508; color: #00ffcc; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
-        #game-container { position: relative; width: 100vw; max-width: 800px; height: 60vh; max-height: 450px; background: #0d0e15; border: 2px solid #00ffcc; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+        body { background: #05050a; color: #fff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        #game-box { position: relative; width: 100vw; max-width: 400px; height: 60vh; background: #0d0f18; border: 2px solid #00f3ff; overflow: hidden; box-shadow: 0 0 15px rgba(0,243,255,0.3); }
         
         /* နောက်ခံ စာသားပုံစံ */
-        .bg-text {
+        .bg-watermark {
             position: absolute;
-            top: 40%;
+            top: 30%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
-            color: rgba(0, 255, 204, 0.25);
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            color: rgba(0, 243, 255, 0.35);
+            text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
             text-align: center;
             white-space: nowrap;
             pointer-events: none;
             z-index: 1;
+            font-family: sans-serif;
         }
 
-        #player { position: absolute; bottom: 20px; left: 50px; width: 40px; height: 40px; background: #00ffcc; box-shadow: 0 0 10px #00ffcc; transition: bottom 0.1s; z-index: 2; }
-        .obstacle { position: absolute; bottom: 0; width: 30px; height: 50px; background: #ff3366; box-shadow: 0 0 10px #ff3366; z-index: 2; }
-        #score { font-size: 24px; margin-bottom: 20px; text-shadow: 0 0 5px #00ffcc; }
+        #ui { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 10; border: 1px solid #00f3ff; padding: 5px 10px; background: rgba(0,243,255,0.1); border-radius: 4px; color: #00f3ff; font-size: 14px; }
+        .platform { position: absolute; background: #1a1d2e; border: 1px solid #3d4468; z-index: 2; }
+        #player { position: absolute; width: 16px; height: 24px; background: #00f3ff; box-shadow: 0 0 8px #00f3ff; z-index: 5; border-radius: 2px; }
+        .spike { position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 16px solid #ff0055; filter: drop-shadow(0 0 4px #ff0055); z-index: 4; }
+        #door { position: absolute; width: 20px; height: 35px; background: #ffe600; box-shadow: 0 0 10px #ffe600; z-index: 3; }
+        #controls { display: flex; justify-content: space-between; width: 100vw; max-width: 400px; padding: 20px; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 15px; }
+        .btn { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #00f3ff; background: rgba(0,243,255,0.05); color: #00f3ff; font-size: 24px; display: flex; align-items: center; justify-content: center; outline: none; }
+        .btn:active { background: rgba(0,243,255,0.4); }
     </style>
 </head>
 <body>
-    <div id="score">Score: 0</div>
-    <div id="game-container" onclick="jump()">
-        <div class="bg-text">ရဲမာန်အောင်<br>စောက်ချောကြီး</div>
+
+    <div id="game-box">
+        <div id="ui">
+            <span>LEVEL: <span id="lvl">1</span>/100</span>
+            <span>DEATHS: <span id="deaths">0</span></span>
+        </div>
+        <div class="bg-watermark">ရဲမာန်အောင်<br>စောက်ချောကြီး</div>
         <div id="player"></div>
+        <div id="door"></div>
+        <div id="objects"></div>
     </div>
+
+    <div id="controls">
+        <div class="btn-group">
+            <button class="btn" id="leftBtn">◀</button>
+            <button class="btn" id="rightBtn">▶</button>
+        </div>
+        <button class="btn" id="jumpBtn">▲</button>
+    </div>
+
     <script>
-        let player = document.getElementById("player");
-        let scoreElement = document.getElementById("score");
-        let score = 0;
-        let isJumping = false;
-        function jump() {
-            if (isJumping) return;
-            isJumping = true;
-            player.style.bottom = "150px";
-            setTimeout(() => { player.style.bottom = "20px"; isJumping = false; }, 500);
+        const p = document.getElementById('player'), d = document.getElementById('door'), objs = document.getElementById('objects');
+        let px = 30, py = 400, vx = 0, vy = 0, level = 1, deaths = 0, isGrounded = false;
+        let keys = { left: false, right: false };
+
+        const levels = [
+            {
+                p: [{x:0,y:430,w:400,h:20},{x:30,y:350,w:60,h:12},{x:130,y:300,w:60,h:12},{x:230,y:250,w:60,h:12}],
+                s: [{x:70,y:414}],
+                door: {x:330,y:215}
+            }
+        ];
+
+        function loadLevel(l) {
+            objs.innerHTML = '';
+            let data = levels[0];
+            data.p.forEach(plat => {
+                let div = document.createElement('div');
+                div.className = 'platform';
+                div.style.left = plat.x + 'px'; div.style.top = plat.y + 'px';
+                div.style.width = plat.w + 'px'; div.style.height = plat.h + 'px';
+                objs.appendChild(div);
+            });
+            data.s.forEach(spk => {
+                let div = document.createElement('div');
+                div.className = 'spike';
+                div.style.left = spk.x + 'px'; div.style.top = spk.y + 'px';
+                objs.appendChild(div);
+            });
+            d.style.left = data.door.x + 'px'; d.style.top = data.door.y + 'px';
+            px = 30; py = 300; vx = 0; vy = 0;
         }
-        function createObstacle() {
-            let obs = document.createElement("div");
-            obs.className = "obstacle";
-            obs.style.right = "-50px";
-            document.getElementById("game-container").appendChild(obs);
-            let pos = -50;
-            let timer = setInterval(() => {
-                pos += 5;
-                obs.style.right = pos + "px";
-                if (pos > 800) { obs.remove(); clearInterval(timer); score++; scoreElement.innerText = "Score: " + score; }
-                if (pos > 710 && pos < 760 && !isJumping) { alert("Game Over! Score: " + score); location.reload(); }
-            }, 20);
+
+        function die() {
+            deaths++;
+            document.getElementById('deaths').innerText = deaths;
+            loadLevel(level);
         }
-        setInterval(createObstacle, 2000);
+
+        function update() {
+            if (keys.left) vx = -3;
+            else if (keys.right) vx = 3;
+            else vx = 0;
+
+            vy += 0.5;
+            px += vx; py += vy;
+
+            isGrounded = false;
+            let currentLvl = levels[0];
+            
+            currentLvl.p.forEach(plat => {
+                if (px + 16 > plat.x && px < plat.x + plat.w && py + 24 >= plat.y && py + 24 <= plat.y + 10 && vy >= 0) {
+                    py = plat.y - 24; vy = 0; isGrounded = true;
+                }
+            });
+
+            currentLvl.s.forEach(spk => {
+                if (px + 16 > spk.x && px < spk.x + 16 && py + 24 > spk.y && py < spk.y + 16) {
+                    die();
+                }
+            });
+
+            if (px + 16 > currentLvl.door.x && px < currentLvl.door.x + 20 && py + 24 > currentLvl.door.y && py < currentLvl.door.y + 35) {
+                alert("Level Cleared!");
+                loadLevel(level);
+            }
+
+            if (py > 500) die();
+
+            p.style.left = px + 'px'; p.style.top = py + 'px';
+            requestAnimationFrame(update);
+        }
+
+        const setupBtn = (id, key) => {
+            let btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('mousedown', () => keys[key] = true);
+            btn.addEventListener('mouseup', () => keys[key] = false);
+        };
+
+        setupBtn('leftBtn', 'left');
+        setupBtn('rightBtn', 'right');
+        
+        let jBtn = document.getElementById('jumpBtn');
+        const doJump = (e) => { if(e) e.preventDefault(); if (isGrounded) { vy = -9; isGrounded = false; } };
+        jBtn.addEventListener('touchstart', doJump);
+        jBtn.addEventListener('mousedown', doJump);
+
+        loadLevel(level);
+        update();
     </script>
 </body>
 </html>
