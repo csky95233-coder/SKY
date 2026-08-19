@@ -1,5 +1,4 @@
 from pathlib import Path
-
 html = r'''<!DOCTYPE html>
 <html lang="my">
 <head>
