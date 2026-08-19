@@ -26,9 +26,9 @@
         <div id="platforms"></div>
     </div>
     <div id="controls">
-        <button class="btn" onclick="move(-5)">◀</button>
+        <button class="btn" onclick="move(-15)">◀</button>
         <button class="btn" onclick="jump()">▲</button>
-        <button class="btn" onclick="move(5)">▶</button>
+        <button class="btn" onclick="move(15)">▶</button>
     </div>
 
     <script>
@@ -40,31 +40,27 @@
 
         function loadLevel() {
             document.getElementById('lvl').innerText = level;
-            plats.innerHTML = '';
-            // ရိုးရှင်းတဲ့ Level ပုံစံများ
-            let p1 = document.createElement('div'); p1.className = 'platform'; 
-            p1.style.left = '0px'; p1.style.top = '350px'; p1.style.width = '400px'; p1.style.height = '20px';
-            plats.appendChild(p1);
-            
-            door.style.left = (300 + (level * 5)) + 'px'; // Level တက်လေ တံခါးဝေးလေ
+            door.style.left = (100 + (level * 20)) + 'px'; 
             door.style.top = '320px';
         }
 
         function move(dir) { px += dir; player.style.left = px + 'px'; checkWin(); }
-        function jump() { if(py > 280) vy = -15; }
+        function jump() { if(py >= 300) vy = -15; }
         
         function update() {
             vy += 0.8; py += vy;
-            if (py > 330) { py = 330; vy = 0; }
+            if (py >= 300) { py = 300; vy = 0; }
             player.style.left = px + 'px';
             player.style.top = py + 'px';
             requestAnimationFrame(update);
         }
 
         function checkWin() {
-            if (px > parseInt(door.style.left) - 20 && px < parseInt(door.style.left) + 20) {
+            let doorX = parseInt(door.style.left);
+            if (px > doorX - 30 && px < doorX + 30) {
                 level++;
-                px = 50; py = 300;
+                document.getElementById('lvl').innerText = level; // ဒီနေရာမှာ နံပါတ်ကို အတင်းပြောင်းပေးထားပါတယ်
+                px = 50;
                 loadLevel();
             }
         }
