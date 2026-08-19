@@ -9,8 +9,7 @@
         body { background: #05050a; color: #00f3ff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
         #game-box { position: relative; width: 100vw; max-width: 400px; height: 60vh; background: #0d0f18; border: 2px solid #00f3ff; overflow: hidden; }
         .bg-watermark { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; font-weight: bold; color: rgba(0, 243, 255, 0.2); text-align: center; pointer-events: none; z-index: 1; }
-        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; font-size: 16px; background: rgba(0,0,0,0.5); padding: 5px; }
-        .platform { position: absolute; background: #2a2d3e; border: 1px solid #00f3ff; }
+        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; font-size: 16px; background: rgba(0,0,0,0.8); padding: 5px; border: 1px solid #00f3ff; }
         #player { position: absolute; width: 20px; height: 20px; background: #00f3ff; z-index: 5; }
         #door { position: absolute; width: 25px; height: 30px; background: #ffe600; z-index: 3; }
         #controls { display: flex; gap: 20px; margin-top: 20px; }
@@ -19,11 +18,10 @@
 </head>
 <body>
     <div id="game-box">
-        <div id="ui">LEVEL: <span id="lvl">1</span>/100</div>
+        <div id="ui">LEVEL: <span id="lvl-display">1</span>/100</div>
         <div class="bg-watermark">ရဲမာန်အောင်<br>စောက်ချောကြီး</div>
         <div id="player"></div>
         <div id="door"></div>
-        <div id="platforms"></div>
     </div>
     <div id="controls">
         <button class="btn" onclick="move(-15)">◀</button>
@@ -34,13 +32,14 @@
     <script>
         let player = document.getElementById('player');
         let door = document.getElementById('door');
-        let plats = document.getElementById('platforms');
+        let lvlDisplay = document.getElementById('lvl-display');
         let level = 1;
         let px = 50, py = 300, vy = 0;
 
-        function loadLevel() {
-            document.getElementById('lvl').innerText = level;
-            door.style.left = (100 + (level * 20)) + 'px'; 
+        function updateLevelUI() {
+            lvlDisplay.textContent = level;
+            // တံခါးကို နေရာရွှေ့ပေးခြင်း
+            door.style.left = (Math.min(350, 100 + (level * 5))) + 'px';
             door.style.top = '320px';
         }
 
@@ -56,16 +55,19 @@
         }
 
         function checkWin() {
-            let doorX = parseInt(door.style.left);
+            let doorX = parseInt(door.style.left || 100);
             if (px > doorX - 30 && px < doorX + 30) {
-                level++;
-                document.getElementById('lvl').innerText = level; // ဒီနေရာမှာ နံပါတ်ကို အတင်းပြောင်းပေးထားပါတယ်
-                px = 50;
-                loadLevel();
+                if(level < 100) {
+                    level++;
+                    updateLevelUI();
+                    px = 50; 
+                } else {
+                    alert("Game Completed!");
+                }
             }
         }
 
-        loadLevel();
+        updateLevelUI();
         update();
     </script>
 </body>
